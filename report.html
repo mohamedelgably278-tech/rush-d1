@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>تقرير عقاري</title>
+<link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@600;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#241241;--plum:#6A45C9;--ps:#EFEAFB;--lime:#AEDD1C;--ld:#51730A;--ls:#EEF7D6;
+  --coral:#DD4F36;--amber:#DD8E2A;--as:#FAEFD8;--paper:#FBF8F3;--card:#fff;--soft:#6A6380;--line:#ECE5DB;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Tajawal',sans-serif;background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:'El Messiri',serif}
+
+/* LOADING */
+#loadScreen{position:fixed;inset:0;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity .8s ease}
+#loadScreen.out{opacity:0;pointer-events:none}
+.load-logo{font-family:'El Messiri';font-size:36px;color:#fff;display:flex;align-items:center;gap:12px;margin-bottom:20px;animation:fadeUp .6s ease both}
+.load-bar{width:200px;height:3px;background:rgba(255,255,255,.15);border-radius:2px;overflow:hidden}
+.load-bar-fill{height:100%;background:var(--lime);border-radius:2px;animation:loadBar 1.4s ease forwards}
+.load-sub{color:rgba(255,255,255,.5);font-size:13px;margin-top:12px;font-weight:600;animation:fadeUp .6s .2s ease both;opacity:0}
+@keyframes loadBar{from{width:0}to{width:100%}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* ERROR */
+.error-pg{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}
+.error-card{background:var(--card);border-radius:22px;padding:40px 32px;max-width:400px;box-shadow:0 4px 40px rgba(36,18,65,.12)}
+.error-card h2{font-size:22px;margin:14px 0 10px}
+.error-card p{color:var(--soft);font-size:14px;line-height:1.75}
+
+/* REPORT */
+.report{max-width:820px;margin:0 auto;padding-bottom:100px}
+
+/* REVEAL ANIMATION */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .65s ease,transform .65s ease}
+.reveal.on{opacity:1;transform:none}
+.reveal-delay-1{transition-delay:.1s}
+.reveal-delay-2{transition-delay:.2s}
+.reveal-delay-3{transition-delay:.3s}
+.reveal-delay-4{transition-delay:.4s}
+
+/* HEADER */
+.rh{background:linear-gradient(150deg,#0D0920,#2a1060,var(--plum));color:#fff;padding:32px 28px 28px;position:relative;overflow:hidden}
+.rh::before{content:"";position:absolute;top:-80px;left:-60px;width:350px;height:350px;border-radius:50%;background:radial-gradient(circle,rgba(174,221,28,.1),transparent 65%);pointer-events:none}
+.rh::after{content:"";position:absolute;bottom:-60px;right:-40px;width:250px;height:250px;border-radius:50%;background:radial-gradient(circle,rgba(174,221,28,.07),transparent 65%);pointer-events:none}
+.rh-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;position:relative}
+.rh-broker{display:flex;align-items:center;gap:11px}
+.rh-avatar{width:46px;height:46px;border-radius:13px;background:rgba(255,255,255,.15);overflow:hidden;display:grid;place-items:center;font-family:'El Messiri';font-weight:700;font-size:20px;color:#fff;flex-shrink:0}
+.rh-avatar img{width:100%;height:100%;object-fit:contain;background:#fff;padding:4px}
+.rh-bname{font-family:'El Messiri';font-weight:700;font-size:17px;color:#fff}
+.rh-bco{font-size:12px;color:rgba(255,255,255,.65);font-weight:600;margin-top:2px}
+.rh-stamp{font-size:10px;color:rgba(255,255,255,.35);font-weight:600;text-align:left;line-height:1.7}
+.rh-title{font-size:clamp(20px,4vw,28px);color:#fff;position:relative;margin-bottom:6px;line-height:1.3}
+.rh-meta{font-size:13px;color:rgba(255,255,255,.65);font-weight:600;position:relative}
+.rh-accent{display:block;width:40px;height:3px;background:var(--lime);border-radius:2px;margin:12px 0}
+
+/* VERDICT CARD */
+.verdict-card{margin:0 20px;transform:translateY(-18px);position:relative;z-index:2}
+.vc-inner{border-radius:16px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.vc-text{font-family:'El Messiri';font-weight:700;font-size:19px;color:#fff;line-height:1.3}
+.vc-badge{background:rgba(255,255,255,.22);color:#fff;font-size:12px;font-weight:800;padding:5px 14px;border-radius:100px;white-space:nowrap}
+
+/* BODY */
+.rpt-body{padding:0 20px}
+
+/* SECTION CARD */
+.sc{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;margin-bottom:16px;box-shadow:0 2px 14px rgba(36,18,65,.06)}
+.sc-title{font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;color:var(--ink)}
+
+/* SCORE DONUT */
+.score-wrap{display:flex;align-items:center;gap:22px}
+.score-donut{position:relative;width:96px;height:96px;flex-shrink:0}
+.score-donut svg{width:96px;height:96px;transform:rotate(-90deg)}
+.score-donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.score-big{font-family:'El Messiri';font-weight:700;font-size:26px;line-height:1;transition:color .5s ease}
+.score-small{font-size:10px;color:var(--soft);font-weight:700}
+
+/* BARS */
+.bars{flex:1;display:flex;flex-direction:column;gap:10px}
+.bar-row{display:flex;align-items:center;gap:9px}
+.bar-lbl{font-size:12px;font-weight:700;color:var(--soft);width:88px;text-align:right;flex-shrink:0}
+.bar-track{flex:1;height:7px;background:var(--paper);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;width:0;transition:width 1.3s cubic-bezier(.4,0,.2,1)}
+.bar-val{font-size:11px;font-weight:800;width:32px;text-align:left;flex-shrink:0}
+
+/* DEAL GRID */
+.deal-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.di{background:var(--paper);border-radius:10px;padding:11px 13px;opacity:0;transform:translateY(10px);transition:opacity .4s ease,transform .4s ease}
+.di.on{opacity:1;transform:none}
+.di-l{font-size:11px;color:var(--soft);font-weight:700;margin-bottom:3px}
+.di-v{font-size:14px;font-weight:800}
+.di.hl .di-v{color:var(--plum)}
+
+/* ANALYSIS */
+.analysis-text{font-size:14.5px;line-height:1.9;font-weight:500}
+
+/* WINNER BOX */
+.winner-box{background:linear-gradient(135deg,var(--ld),#7CAF1A);border-radius:14px;padding:16px 20px;text-align:center;color:#fff;margin-top:14px;position:relative;overflow:hidden}
+.winner-box::before{content:"🏆";position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.15}
+.winner-title{font-family:'El Messiri';font-size:15px;margin-bottom:5px;opacity:.85}
+.winner-name{font-family:'El Messiri';font-size:22px;font-weight:700}
+
+/* COMPARISON TABLE */
+.comp-tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.comp-tbl th{background:var(--ink);color:#fff;padding:11px 12px;font-weight:700;text-align:right}
+.comp-tbl td{padding:10px 12px;font-weight:600;border-bottom:1px dashed var(--line);text-align:right}
+.comp-tbl tr:nth-child(even) td{background:var(--paper)}
+.comp-tbl tr{opacity:0;transform:translateX(8px);transition:opacity .35s ease,transform .35s ease}
+.comp-tbl tr.on{opacity:1;transform:none}
+.col-a{background:rgba(106,69,201,.05)!important}
+.col-b{background:rgba(221,142,42,.05)!important}
+
+/* UNIT HEADERS */
+.unit-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.unit-badge{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-family:'El Messiri';font-weight:700;font-size:13px;color:#fff;flex-shrink:0}
+.unit-nm{font-weight:700;font-size:15px}
+.unit-dev{font-size:12px;color:var(--soft);font-weight:600;margin-top:2px}
+
+/* PHOTOS */
+.photos-row{display:flex;gap:9px}
+.ph-item{flex:1;aspect-ratio:16/10;border-radius:12px;overflow:hidden;background:var(--paper);opacity:0;transform:scale(.96);transition:opacity .5s ease,transform .5s ease}
+.ph-item.on{opacity:1;transform:none}
+.ph-item img{width:100%;height:100%;object-fit:cover}
+.ph-placeholder{width:100%;height:100%;display:grid;place-items:center;font-size:28px;color:var(--soft)}
+
+/* ACTION BAR */
+.action-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(13,9,32,.95);backdrop-filter:blur(12px);border-top:1px solid rgba(255,255,255,.1);padding:12px 16px;display:flex;gap:9px;justify-content:center;z-index:100}
+.action-bar.hide{display:none}
+.ab-btn{font-family:'Tajawal';font-weight:800;font-size:14px;padding:11px 18px;border-radius:11px;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;transition:.15s;white-space:nowrap}
+.ab-pdf{background:var(--plum);color:#fff}.ab-pdf:hover{background:#553098}
+.ab-wa{background:#25D366;color:#fff}.ab-wa:hover{background:#1fba58}
+.ab-copy{background:rgba(255,255,255,.12);color:#fff}.ab-copy:hover{background:rgba(255,255,255,.2)}
+
+/* FOOTER */
+.rpt-foot{margin:20px 20px 0;padding:14px 0;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;font-size:11.5px;color:var(--soft);font-weight:600}
+
+@media print{
+  #loadScreen,.action-bar{display:none!important}
+  .reveal,.di,.ph-item,.comp-tbl tr{opacity:1!important;transform:none!important;transition:none!important}
+  .bar-fill{transition:none!important}
+  body{background:#fff}
+  .rh,.vc-inner,.winner-box{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+}
+@media(max-width:600px){
+  .deal-grid{grid-template-columns:1fr}
+  .vc-text{font-size:15px}
+  .score-wrap{flex-direction:column;align-items:flex-start}
+  .photos-row{flex-wrap:wrap}
+  .ph-item{min-width:calc(50% - 5px)}
+}
+</style>
+</head>
+<body>
+
+<div id="loadScreen">
+  <div class="load-logo">
+    <svg width="28" height="32" viewBox="0 0 24 26" fill="none"><path d="M12 1l10 4v8c0 6.5-4.3 10.5-10 12C6.3 23.5 2 19.5 2 13V5z" fill="#6A45C9"/><path d="M8 13l3 3 5-6" stroke="#AEDD1C" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    رُشد
+  </div>
+  <div class="load-bar"><div class="load-bar-fill"></div></div>
+  <div class="load-sub">جاري تحميل التقرير...</div>
+</div>
+
+<div id="errPg" class="error-pg" style="display:none">
+  <div class="error-card">
+    <div style="font-size:44px">🔍</div>
+    <h2>التقرير غير موجود</h2>
+    <p>رابط التقرير غير صحيح أو انتهت صلاحيته. تواصل مع الوسيط الذي أرسل لك هذا الرابط.</p>
+  </div>
+</div>
+
+<div id="rpt" class="report" style="display:none"></div>
+
+<div id="actBar" class="action-bar hide">
+  <button class="ab-btn ab-pdf" onclick="downloadPDF()" id="pdfBtn">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/></svg>
+    تحميل PDF
+  </button>
+  <button class="ab-btn ab-wa" id="waBtn">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M17.5 14.4c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.1-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.3-.5-2.5-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4-.1-.5-.1-.1-.7-1.7-.9-2.3-.2-.6-.5-.5-.7-.5-.2 0-.4 0-.6 0-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.1.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 2-1.4.2-.6.2-1.2.1-1.4-.2-.1-.4-.2-.7-.3z"/><path d="M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.5 1.4 5L2 22l5.2-1.4C8.7 21.5 10.3 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18c-1.6 0-3.2-.5-4.5-1.3l-.3-.2-3.1.8.9-2.9-.2-.3C3.5 15 3 13.5 3 12 3 7 7 3 12 3s9 4 9 9-4 9-9 9z"/></svg>
+    مشاركة واتساب
+  </button>
+  <button class="ab-btn ab-copy" id="cpBtn" onclick="copyLink()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+    نسخ الرابط
+  </button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+(function(){
+'use strict';
+var SB='https://hqtdovqreukvprqevazc.supabase.co';
+var SK='sb_publishable_Wrm97KpTXBFx0f_wtzo1yA_nTb9YoPz';
+
+function $(i){return document.getElementById(i);}
+function sbG(t,q){return fetch(SB+'/rest/v1/'+t+(q?'?'+q:''),{headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Accept':'application/json'}}).then(function(r){return r.json();});}
+function fmtDate(d){return new Date(d).toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'});}
+function copyLink(){navigator.clipboard.writeText(window.location.href).then(function(){$('cpBtn').textContent='✅ اتنسخ!';setTimeout(function(){$('cpBtn').innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> نسخ الرابط';},2000);});}
+window.copyLink=copyLink;
+
+function downloadPDF(){
+  var btn=$('pdfBtn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ جاري التحضير...';}
+  var el=$('rpt');
+  var brokerName=(el.querySelector('.rh-bname')&&el.querySelector('.rh-bname').textContent)||'تقرير';
+  var titleEl=el.querySelector('.rh-title');
+  var title=(titleEl&&titleEl.textContent.trim().slice(0,30))||'تقرير-عقاري';
+  var filename=brokerName+' — '+title+'.pdf';
+  var opt={
+    margin:[8,6,8,6],
+    filename:filename,
+    image:{type:'jpeg',quality:.92},
+    html2canvas:{scale:2,useCORS:true,allowTaint:true,scrollY:0,letterRendering:true},
+    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
+    pagebreak:{mode:['avoid-all','css','legacy']},
+  };
+  html2pdf().set(opt).from(el).save().then(function(){
+    if(btn){btn.disabled=false;btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/></svg> تحميل PDF';}
+  }).catch(function(e){console.error(e);if(btn){btn.disabled=false;btn.textContent='تحميل PDF';}});
+}
+window.downloadPDF=downloadPDF;
+
+// ── OBSERVERS ────────────────────────────────────────────────────────────────
+var io=new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    if(!e.isIntersecting)return;
+    var el=e.target;
+    el.classList.add('on');
+    // stagger children if deal-grid
+    if(el.classList.contains('deal-grid')){
+      el.querySelectorAll('.di').forEach(function(d,i){setTimeout(function(){d.classList.add('on');},i*80);});
+    }
+    // animate bars
+    if(el.classList.contains('score-wrap')){
+      setTimeout(function(){
+        el.querySelectorAll('.bar-fill').forEach(function(b){b.style.width=b.dataset.target;});
+        animateDonut(el);
+        animateCounter(el);
+      },200);
+    }
+    // animate table rows
+    if(el.classList.contains('comp-tbl')){
+      el.querySelectorAll('tr').forEach(function(r,i){setTimeout(function(){r.classList.add('on');},i*60);});
+    }
+    // animate photos
+    if(el.classList.contains('photos-row')){
+      el.querySelectorAll('.ph-item').forEach(function(p,i){setTimeout(function(){p.classList.add('on');},i*120);});
+    }
+    io.unobserve(el);
+  });
+},{threshold:.15});
+
+function observe(sel){document.querySelectorAll(sel).forEach(function(el){io.observe(el);});}
+
+function animateDonut(wrap){
+  var svg=wrap.querySelector('.score-ring-fill');
+  var numEl=wrap.querySelector('.score-big');
+  if(!svg||!numEl)return;
+  var target=parseInt(svg.dataset.target)||0;
+  var circ=2*Math.PI*38;
+  var dash=(target/100)*circ;
+  svg.style.strokeDasharray=dash+' '+circ;
+  // counter animation
+  var start=0,dur=1200,t0=performance.now();
+  function tick(now){
+    var pct=Math.min((now-t0)/dur,1);
+    var ease=1-Math.pow(1-pct,3);
+    numEl.textContent=Math.round(ease*target);
+    if(pct<1)requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function animateCounter(wrap){/* handled in animateDonut */}
+
+// ── LOAD ─────────────────────────────────────────────────────────────────────
+var id=new URLSearchParams(window.location.search).get('id');
+if(!id){setTimeout(function(){$('loadScreen').classList.add('out');$('errPg').style.display='flex';},1500);return;}
+
+setTimeout(function(){
+  sbG('reports','select=*&id=eq.'+id).then(function(rows){
+    if(!rows||!rows[0]){$('loadScreen').classList.add('out');$('errPg').style.display='flex';return;}
+    var r=rows[0], d=r.data_json||{};
+    var date=fmtDate(r.created_at);
+    // restore photos from localStorage for custom compare
+    if(d.type==='custom_compare'){
+      try{var ph=JSON.parse(localStorage.getItem('rushd_rpt_photos_'+r.id)||'{}');if(d.unitA)d.unitA.photos=ph.A||[];if(d.unitB)d.unitB.photos=ph.B||[];}catch(e){}
+    }
+    // fetch project images from DB for single reports
+    var imgPromise=Promise.resolve([]);
+    if(r.type==='single'&&r.project_ids&&r.project_ids.length){
+      imgPromise=sbG('project_images','select=url,caption&project_id=in.('+r.project_ids.join(',')+')&order=sort_order.asc');
+    }
+    imgPromise.then(function(imgs){
+      if(imgs&&imgs.length)d.image_urls=(imgs||[]).map(function(i){return i.url;});
+      if(d.type==='custom_compare')renderCustom(r,d,date);
+      else if(r.type==='comparison')renderComp(r,d,date);
+      else renderSingle(r,d,date);
+      // set WA btn
+      $('waBtn').onclick=function(){window.open('https://wa.me/?text='+encodeURIComponent((d.broker_name?'تقرير من '+d.broker_name+' — ':'')+'تقرير عقاري احترافي: '+window.location.href),'_blank');};
+      // show report with animation
+      $('loadScreen').classList.add('out');
+      $('rpt').style.display='block';
+      $('actBar').classList.remove('hide');
+      setTimeout(function(){
+        observe('.reveal');
+        observe('.score-wrap');
+        observe('.deal-grid');
+        observe('.photos-row');
+        observe('.comp-tbl');
+      },150);
+    });
+  }).catch(function(){$('loadScreen').classList.add('out');$('errPg').style.display='flex';});
+},1500);
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function mkHeader(d,r,date,subtitle){
+  var av=d.broker_logo
+    ?'<img src="'+d.broker_logo+'" alt="لوجو">'
+    :'<span>'+(d.broker_name||'و').charAt(0)+'</span>';
+  return '<div class="rh reveal">'+
+    '<div class="rh-top">'+
+      '<div class="rh-broker">'+
+        '<div class="rh-avatar">'+av+'</div>'+
+        '<div><div class="rh-bname">'+(d.broker_name||'')+'</div>'+
+        '<div class="rh-bco">'+(d.broker_company||'')+'</div></div>'+
+      '</div>'+
+      '<div class="rh-stamp">'+date+'<br>مُعدّ لـ '+(r.client_name||'العميل الكريم')+'<br><span style="opacity:.4">تقنية رُشد</span></div>'+
+    '</div>'+
+    '<span class="rh-accent"></span>'+
+    '<div class="rh-title">'+subtitle+'</div>'+
+  '</div>';
+}
+
+function mkVerdict(score){
+  var bg=score>=90?'linear-gradient(135deg,#3a6a0a,#5e9c12)':score>=82?'linear-gradient(135deg,var(--plum),#9a5bc4)':score>=70?'linear-gradient(135deg,#c97a1a,#e0a030)':'linear-gradient(135deg,#b83020,#d9604a)';
+  var txt=score>=90?'تقدر تدفع وإنت مطمن ✓':score>=82?'خيار قوي يستاهل':score>=70?'جيد مع بعض تحفظات':'خد بالك قبل الدفع';
+  var badge=score>=90?'ممتاز':score>=82?'قوي':score>=70?'جيد':'تحفّظ';
+  return '<div class="verdict-card reveal reveal-delay-1">'+
+    '<div class="vc-inner" style="background:'+bg+'">'+
+      '<div class="vc-text">الحكم: '+txt+'</div>'+
+      '<div class="vc-badge">'+badge+'</div>'+
+    '</div>'+
+  '</div>';
+}
+
+function mkScore(score,reg,del,exp,stab){
+  var c=score>=90?'#51730A':score>=82?'var(--plum)':score>=70?'var(--amber)':'var(--coral)';
+  var circ=2*Math.PI*38;
+  return '<div class="sc reveal reveal-delay-2">'+
+    '<div class="sc-title">📊 سكور المطوّر</div>'+
+    '<div class="score-wrap">'+
+      '<div class="score-donut">'+
+        '<svg viewBox="0 0 96 96">'+
+          '<circle cx="48" cy="48" r="38" fill="none" stroke="#ECE5DB" stroke-width="9"/>'+
+          '<circle class="score-ring-fill" cx="48" cy="48" r="38" fill="none" stroke="'+c+'" stroke-width="9" stroke-linecap="round" stroke-dasharray="0 '+circ+'" data-target="'+score+'" style="transition:stroke-dasharray 1.4s cubic-bezier(.4,0,.2,1)"/>'+
+        '</svg>'+
+        '<div class="score-donut-center">'+
+          '<div class="score-big" style="color:'+c+'">0</div>'+
+          '<div class="score-small">/ 100</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="bars">'+
+        mkBar('التسجيل',reg,25,'#6A45C9')+
+        mkBar('التسليم',del,35,'#51730A')+
+        mkBar('الخبرة',exp,25,'#DD8E2A')+
+        mkBar('الاستقرار',stab,15,'#DD4F36')+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+
+function mkBar(lbl,val,max,color){
+  var pct=Math.round(Math.min(val/max,1)*100);
+  return '<div class="bar-row">'+
+    '<div class="bar-lbl">'+lbl+'</div>'+
+    '<div class="bar-track"><div class="bar-fill" data-target="'+pct+'%" style="background:'+color+'"></div></div>'+
+    '<div class="bar-val">'+val+'/'+max+'</div>'+
+  '</div>';
+}
+
+function mkDeal(items){
+  return '<div class="sc reveal reveal-delay-2">'+
+    '<div class="sc-title">📋 تفاصيل الصفقة</div>'+
+    '<div class="deal-grid">'+
+    items.map(function(it){return '<div class="di'+(it.hl?' hl':'')+'"><div class="di-l">'+it.l+'</div><div class="di-v">'+it.v+'</div></div>';}).join('')+
+    '</div></div>';
+}
+
+function mkAnalysis(text,brokerName){
+  if(!text)return '';
+  return '<div class="sc reveal reveal-delay-3" style="background:var(--ls);border:1px solid rgba(81,115,10,.2)">'+
+    '<div class="sc-title" style="color:var(--ld)">💡 التحليل — '+(brokerName||'رُشد')+'</div>'+
+    '<div class="analysis-text">'+text.replace(/#{1,3}\s*/g,'').replace(/\*\*/g,'')+'</div>'+
+  '</div>';
+}
+
+function mkWinner(name){
+  if(!name)return '';
+  return '<div class="winner-box">'+
+    '<div class="winner-title">الأفضل للاستثمار</div>'+
+    '<div class="winner-name">🏆 '+name+'</div>'+
+  '</div>';
+}
+
+function mkPhotos(urls,title){
+  if(!urls||!urls.length)return '';
+  var valid=urls.filter(function(u){return u&&u.length>5;}).slice(0,3);
+  if(!valid.length)return '';
+  return '<div class="sc reveal reveal-delay-4">'+
+    '<div class="sc-title">📷 '+(title||'صور المشروع')+'</div>'+
+    '<div class="photos-row">'+
+    valid.map(function(u){
+      return '<div class="ph-item"><img src="'+u+'" alt="صورة" onerror="this.parentNode.innerHTML=\'<div class=ph-placeholder>🏙</div>\'"></div>';
+    }).join('')+
+    '</div></div>';
+}
+
+function mkFoot(d,date){
+  return '<div class="rpt-foot">'+
+    '<span>'+(d.broker_name||'')+(d.broker_company?' · '+d.broker_company:'')+' · '+date+'</span>'+
+    '<span>تقرير استرشادي غير ملزم</span>'+
+  '</div>';
+}
+
+// ── RENDER SINGLE ─────────────────────────────────────────────────────────────
+function renderSingle(r,d,date){
+  var score=d.score||0;
+  var html=
+    mkHeader(d,r,date,d.project_name||'—')+
+    mkVerdict(score)+
+    '<div class="rpt-body">'+
+    mkScore(score,d.reg_score||0,d.del_score||0,d.exp_score||0,d.stab_score||0)+
+    mkDeal([
+      {l:'المطوّر',v:d.developer||'—',hl:false},{l:'المساحة',v:d.size||'—',hl:false},
+      {l:'السعر',v:d.price||'—',hl:true},{l:'التسليم',v:d.delivery_date||'—',hl:false},
+      {l:'التقسيط',v:d.installment||'—',hl:false},{l:'المرافق',v:d.amenities||'—',hl:false},
+      {l:'العائد المتوقع',v:d.yield_pct||'—',hl:true},{l:'ملاحظة',v:d.broker_note||'—',hl:false},
+    ])+
+    mkAnalysis(d.analysis,d.broker_name)+
+    mkPhotos(d.image_urls||[])+
+    mkFoot(d,date)+
+    '</div>';
+  $('rpt').innerHTML=html;
+  document.title=(d.broker_name||'تقرير')+' — '+(d.project_name||'');
+}
+
+// ── RENDER CUSTOM COMPARE ─────────────────────────────────────────────────────
+function renderCustom(r,d,date){
+  var uA=d.unitA||{}, uB=d.unitB||{};
+  var fields=d.active_fields||['developer','price','size','delivery','install','down','yield','amenities','strength','warning'];
+  var LABELS={developer:'المطوّر',score:'سكور',price:'السعر',priceM:'سعر المتر',size:'المساحة',delivery:'التسليم',install:'التقسيط',down:'المقدّم',yield:'العائد الإيجاري',amenities:'المرافق',strength:'نقطة القوة',warning:'التحذير'};
+
+  var rows=fields.filter(function(k){return LABELS[k];}).map(function(k){
+    var vA=uA[k]||uA[k+'_pct']||'—';
+    var vB=uB[k]||uB[k+'_pct']||'—';
+    return '<tr><td style="font-weight:800;background:var(--paper)">'+LABELS[k]+'</td>'+
+      '<td class="col-a">'+vA+'</td><td class="col-b">'+vB+'</td></tr>';
+  }).join('');
+
+  // determine winner from analysis text
+  var winner='';
+  if(d.analysis){
+    var aLow=d.analysis.toLowerCase();
+    var pAName=(uA.project||'').split(' ')[0];
+    var pBName=(uB.project||'').split(' ')[0];
+    if(pAName&&aLow.indexOf(pAName.toLowerCase())>aLow.indexOf(pBName.toLowerCase()))winner=uA.project||'الوحدة أ';
+    else if(pBName)winner=uB.project||'الوحدة ب';
+  }
+
+  var pA=(uA.photos||[]).filter(function(p){return p&&p.length>5;}).slice(0,2);
+  var pB=(uB.photos||[]).filter(function(p){return p&&p.length>5;}).slice(0,2);
+  var photosHtml='';
+  if(pA.length||pB.length){
+    var mk=function(u){return '<div class="ph-item"><img src="'+u+'" alt="صورة" onerror="this.parentNode.innerHTML=\'<div class=ph-placeholder>🏙</div>\'"></div>';};
+    photosHtml='<div class="sc reveal reveal-delay-4"><div class="sc-title">📷 صور الوحدتين</div>'+
+      (pA.length?'<div style="font-size:11.5px;font-weight:700;color:var(--soft);margin-bottom:6px">أ — '+(uA.project||'')+'</div><div class="photos-row">'+pA.map(mk).join('')+'</div>':'')+
+      (pB.length?'<div style="font-size:11.5px;font-weight:700;color:var(--soft);margin:10px 0 6px">ب — '+(uB.project||'')+'</div><div class="photos-row">'+pB.map(mk).join('')+'</div>':'')+
+    '</div>';
+  }
+
+  var html=
+    mkHeader(d,r,date,'مقارنة: '+(uA.project||'—')+' مقابل '+(uB.project||'—'))+
+    '<div class="rpt-body" style="margin-top:20px">'+
+    '<div class="sc reveal">'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'+
+        '<div class="unit-head"><div class="unit-badge" style="background:var(--plum)">أ</div><div><div class="unit-nm">'+(uA.project||'—')+'</div><div class="unit-dev">'+(uA.developer||'—')+'</div></div></div>'+
+        '<div class="unit-head"><div class="unit-badge" style="background:var(--amber)">ب</div><div><div class="unit-nm">'+(uB.project||'—')+'</div><div class="unit-dev">'+(uB.developer||'—')+'</div></div></div>'+
+      '</div>'+
+      '<div style="overflow-x:auto"><table class="comp-tbl">'+
+        '<thead><tr><th>البند</th><th style="color:#c9b8f8">'+(uA.project||'أ')+'</th><th style="color:#F0B850">'+(uB.project||'ب')+'</th></tr></thead>'+
+        '<tbody>'+rows+'</tbody>'+
+      '</table></div>'+
+    '</div>'+
+    (d.analysis?'<div class="sc reveal reveal-delay-2" style="background:var(--ls);border:1px solid rgba(81,115,10,.2)">'+
+      '<div class="sc-title" style="color:var(--ld)">💡 التحليل — '+(d.broker_name||'رُشد')+'</div>'+
+      '<div class="analysis-text">'+d.analysis.replace(/#{1,3}\s*/g,'').replace(/\*\*/g,'')+'</div>'+
+      (winner?mkWinner(winner):'')+
+    '</div>':'')+
+    photosHtml+
+    mkFoot(d,date)+
+    '</div>';
+  $('rpt').innerHTML=html;
+  document.title=(d.broker_name||'تقرير')+' — مقارنة '+(uA.project||'')+'/'+(uB.project||'');
+}
+
+// ── RENDER COMPARISON (DB projects) ──────────────────────────────────────────
+function renderComp(r,d,date){
+  var projects=d.projects||[];
+  var sp=[].concat(projects).sort(function(a,b){return (b.score||0)-(a.score||0);});
+  var medals=['🥇','🥈','🥉'];
+  var activeF=d.active_fields||['developer','price','priceM','size','delivery','install','yield','amenities','strength','warning'];
+  var LABELS={developer:'المطوّر',score:'سكور رُشد',price:'السعر',priceM:'سعر المتر',size:'المساحة',delivery:'التسليم',install:'التقسيط',down:'المقدّم',yield:'العائد',amenities:'المرافق',strength:'نقطة القوة',warning:'التحذير'};
+
+  var scoresHtml=sp.map(function(p,i){
+    var sc=p.score||0;
+    var c=sc>=90?'#51730A':sc>=82?'var(--plum)':sc>=70?'var(--amber)':'var(--coral)';
+    var circ=2*Math.PI*38;
+    return '<div style="flex:1;background:var(--paper);border-radius:13px;padding:14px;text-align:center">'+
+      '<div style="font-size:18px;margin-bottom:5px">'+medals[i]+'</div>'+
+      '<div style="font-weight:700;font-size:13px;margin-bottom:3px">'+(p.project||'—')+'</div>'+
+      '<div style="font-size:11px;color:var(--soft);margin-bottom:8px">'+(p.developer||'—')+'</div>'+
+      '<svg width="60" height="60" viewBox="0 0 96 96" style="transform:rotate(-90deg)">'+
+        '<circle cx="48" cy="48" r="38" fill="none" stroke="#ECE5DB" stroke-width="9"/>'+
+        '<circle cx="48" cy="48" r="38" fill="none" stroke="'+c+'" stroke-width="9" stroke-linecap="round" stroke-dasharray="'+Math.round((sc/100)*circ)+' '+circ+'"/>'+
+      '</svg>'+
+      '<div style="font-family:El Messiri;font-weight:700;font-size:20px;color:'+c+';margin-top:4px">'+sc+'</div>'+
+    '</div>';
+  }).join('');
+
+  var rows=activeF.filter(function(k){return LABELS[k];}).map(function(k){
+    var cells=sp.map(function(p){return '<td>'+((p[k]||p[k+'_pct'])||'—')+'</td>';}).join('');
+    return '<tr><td style="font-weight:800;background:var(--paper)">'+LABELS[k]+'</td>'+cells+'</tr>';
+  }).join('');
+
+  var headers=sp.map(function(p,i){return '<th>'+(medals[i]||'')+' '+(p.project||'—')+'</th>';}).join('');
+  var winner=sp[0]?sp[0].project:'';
+
+  var html=
+    mkHeader(d,r,date,'مقارنة '+sp.length+' مشاريع')+
+    '<div class="rpt-body" style="margin-top:20px">'+
+    '<div class="sc reveal">'+
+      '<div class="sc-title">🏅 ترتيب المشاريع</div>'+
+      '<div style="display:flex;gap:10px">'+scoresHtml+'</div>'+
+    '</div>'+
+    '<div class="sc reveal reveal-delay-1">'+
+      '<div class="sc-title">📊 مقارنة تفصيلية</div>'+
+      '<div style="overflow-x:auto"><table class="comp-tbl">'+
+        '<thead><tr><th>البند</th>'+headers+'</tr></thead>'+
+        '<tbody>'+rows+'</tbody>'+
+      '</table></div>'+
+    '</div>'+
+    (winner?'<div class="sc reveal reveal-delay-2" style="background:var(--ls);border:1px solid rgba(81,115,10,.2)">'+
+      '<div class="sc-title" style="color:var(--ld)">💡 الخلاصة</div>'+
+      mkWinner(winner)+
+    '</div>':'')+
+    mkFoot(d,date)+
+    '</div>';
+  $('rpt').innerHTML=html;
+  document.title=(d.broker_name||'تقرير')+' — مقارنة مشاريع';
+}
+
+})();
+</script>
+</body>
+</html>
