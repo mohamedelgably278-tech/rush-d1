@@ -129,6 +129,7 @@ textarea.inp{resize:vertical;min-height:72px;font-size:14px;line-height:1.65}
     <button class="tab" data-t="devs">🏢 المطوّرين</button>
     <button class="tab" data-t="adddev">✨ أضف مطوّر</button>
     <button class="tab" data-t="excel">📊 رفع Excel</button>
+    <button class="tab" data-t="brokers">🔑 الوسطاء</button>
   </div>
   <div class="content">
 
@@ -310,8 +311,23 @@ textarea.inp{resize:vertical;min-height:72px;font-size:14px;line-height:1.65}
       </div>
     </div>
 
+    <!-- BROKERS PANEL -->
+    <div class="panel" id="tab-brokers">
+      <div class="sec-head">
+        <h2>🔑 الوسطاء</h2>
+        <span id="bkStats" style="font-size:13px;color:var(--soft);font-weight:700;padding:8px 14px;background:var(--paper);border-radius:10px;border:1px solid var(--line)">جاري التحميل...</span>
+      </div>
+      <div class="srow"><input type="text" id="bkSearch" placeholder="ابحث باسم أو إيميل..." oninput="filterBrokers()"></div>
+      <div class="tw"><table style="min-width:700px"><thead><tr>
+        <th>الاسم</th><th>الشركة</th><th>الإيميل</th><th>الموبايل</th><th>الحالة</th><th>التسجيل</th><th>إجراء</th>
+      </tr></thead><tbody id="bktb"><tr><td colspan="7" class="loading">⏳ جاري التحميل...</td></tr></tbody></table></div>
+    </div>
+
   </div>
 </div>
+
+<!-- PROJECT MODAL -->
+<div id="pm" style="display:none;position:fixed;inset:0;background:rgba(36,18,65,.5);z-index:200;align-items:center;justify-content:center;padding:20px">
   <div class="mbox">
     <h3>➕ أضف مشروع</h3>
     <div class="fld"><label>اسم المشروع</label><input class="inp" id="pn" placeholder="مدينتي"></div>
@@ -323,7 +339,7 @@ textarea.inp{resize:vertical;min-height:72px;font-size:14px;line-height:1.65}
     </div>
     <div class="mbtns">
       <button class="abtn abtn-p" onclick="addProj()" style="flex:1">أضف</button>
-      <button class="abtn abtn-g" onclick="$('pm').classList.remove('on')" style="flex:1">إلغاء</button>
+      <button class="abtn abtn-g" onclick="document.getElementById('pm').style.display='none'" style="flex:1">إلغاء</button>
     </div>
   </div>
 </div>
@@ -354,7 +370,7 @@ $('pw').addEventListener('keydown',function(e){if(e.key==='Enter')login();});
 function logout(){$('shell').classList.remove('on');$('lo').style.display='flex';$('pw').value='';}
 window.logout=logout;
 
-function goTab(n){document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('on',t.dataset.t===n);});document.querySelectorAll('.panel').forEach(function(p){p.classList.toggle('on',p.id==='tab-'+n);});}
+function goTab(n){document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('on',t.dataset.t===n);});document.querySelectorAll('.panel').forEach(function(p){p.classList.toggle('on',p.id==='tab-'+n);});if(n==='brokers')loadBrokers();}
 window.goTab=goTab;
 document.querySelectorAll('.tab').forEach(function(t){t.addEventListener('click',function(){goTab(t.dataset.t);});});
 
@@ -470,6 +486,7 @@ function saveDev(){
     else r.text().then(function(t){toast('خطأ: '+t,true);});
   }).catch(function(){btn.disabled=false;btn.textContent='💾 احفظ المطوّر على الموقع';toast('تعذّر الحفظ',true);});
 }
+window.saveDev=saveDev;
 /* ===== EXCEL IMPORT ===== */
 function downloadTemplate(){
   var rows=[
@@ -558,7 +575,7 @@ function showPreview(rows){
 }
 
 function buildPrompt(r){
-  return 'أنت محلل عقاري متخصص. احسب سكور المطوّر التالي من ١٠٠ وزّعه على ٤ أعمدة:\n\nالمطوّر: '+r.name+'\nالتسجيل: '+(r.reg||'غير معروف')+'\nالحجم: '+(r.size||'غير معروف')+'\nسجل التسليم: '+(r.track||'غير معروف')+'\nوحدات سُلّمت: '+(r.deliver||0)+'\nشكاوى: '+(r.complaints||'لا يوجد')+'\n\nالأعمدة (reg:0-25, del:0-35, exp:0-25, stab:0-15)\n\nرد بـJSON فقط:\n{"reg":X,"del":X,"exp":X,"stab":X,"analysis":"٣-٤ جمل عربي محايد"}\nلا تنصح بالشراء أو الرفض.';
+  return 'سكور المطوّر "'+r.name+'" من 100. بيانات: تسجيل='+r.reg+' حجم='+r.size+' تسليم='+r.track+' وحدات='+(r.deliver||0)+' شكاوى='+(r.complaints||'لا')+'\nأعمدة: reg(0-25) del(0-35) exp(0-25) stab(0-15)\nJSON فقط: {"reg":0,"del":0,"exp":0,"stab":0,"analysis":"جملة وحدة عربي"}';
 }
 
 async function runExcelImport(){
@@ -576,10 +593,17 @@ async function runExcelImport(){
     bar.style.width=Math.round((i/xlData.length)*100)+'%';
     addLog('['+(i+1)+'/'+xlData.length+'] '+r.name+' — جاري التحليل...');
     try{
-      var res=await fetch(CLAUDE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,messages:[{role:'user',content:buildPrompt(r)}]})});
+      var res=await fetch(CLAUDE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,messages:[{role:'user',content:buildPrompt(r)}]})});
       var d=await res.json();
+      // debug: log the actual response
+      if(!res.ok){fail++;addLog('  ❌ '+r.name+' — Worker error '+res.status+': '+JSON.stringify(d),'#f38ba8');continue;}
       var text=d.content&&d.content[0]&&d.content[0].text;
-      var parsed=JSON.parse((text||'{}').replace(/```json|```/g,'').trim());
+      if(!text){fail++;addLog('  ❌ '+r.name+' — رد فاضي من AI: '+JSON.stringify(d).slice(0,120),'#f38ba8');continue;}
+      var clean=(text||'{}').replace(/```json|```/g,'').trim();
+      // extract JSON even if there's extra text
+      var jsonMatch=clean.match(/\{[\s\S]*\}/);
+      if(!jsonMatch){fail++;addLog('  ❌ '+r.name+' — مش لاقي JSON في الرد: '+clean.slice(0,80),'#f38ba8');continue;}
+      var parsed=JSON.parse(jsonMatch[0]);
       var total=(parsed.reg||0)+(parsed.del||0)+(parsed.exp||0)+(parsed.stab||0);
       var payload={
         id:r.id,name:r.name,phone:r.phone||'',est:r.est||'',
@@ -593,7 +617,7 @@ async function runExcelImport(){
       if(sr.ok){ok++;addLog('  ✅ '+r.name+' — سكور '+total+'/١٠٠ — تم الحفظ','#a6e3a1');}
       else{fail++;var et=await sr.text();addLog('  ❌ '+r.name+' — خطأ في الحفظ: '+et,'#f38ba8');}
     }catch(e){fail++;addLog('  ❌ '+r.name+' — خطأ: '+String(e),'#f38ba8');}
-    await new Promise(function(res){setTimeout(res,400);});
+    await new Promise(function(res){setTimeout(res,1200);});
   }
   bar.style.width='100%';
   $('xlSummary').textContent='تم معالجة '+(ok+fail)+' مطوّر — نجح '+ok+' — فشل '+fail;
@@ -603,6 +627,67 @@ async function runExcelImport(){
   toast('✅ تم استيراد '+ok+' مطوّر بنجاح!');
 }
 window.runExcelImport=runExcelImport;
+
+/* ===== BROKERS MANAGEMENT ===== */
+var allBrokers=[];
+
+function loadBrokers(){
+  sbG('brokers','select=*&order=created_at.desc').then(function(d){
+    if(!Array.isArray(d)){$('bktb').innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--coral);padding:16px">⚠️ جدول الوسطاء مش موجود — شغّل الـSQL في Supabase أولاً</td></tr>';return;}
+    allBrokers=d;renderBrokers(d);
+    var active=d.filter(function(b){return b.status==='active';}).length;
+    var pending=d.filter(function(b){return b.status==='pending';}).length;
+    $('bkStats').textContent='نشط: '+active+' | انتظار: '+pending+' | إجمالي: '+d.length;
+  });
+}
+window.loadBrokers=loadBrokers;
+
+function renderBrokers(data){
+  var tb=$('bktb');
+  if(!data.length){tb.innerHTML='<tr><td colspan="7" class="empty">لا يوجد وسطاء مسجّلين</td></tr>';return;}
+  tb.innerHTML=data.map(function(b){
+    var sc={'pending':'⏳ انتظار','active':'✅ نشط','suspended':'🚫 موقوف'}[b.status]||b.status;
+    var col={'pending':'var(--amber)','active':'var(--ld)','suspended':'var(--coral)'}[b.status]||'var(--soft)';
+    return '<tr>'+
+      '<td style="font-weight:700">'+b.name+'</td>'+
+      '<td>'+b.company+'</td>'+
+      '<td style="direction:ltr;text-align:right;font-size:12.5px">'+b.email+'</td>'+
+      '<td style="direction:ltr;text-align:right"><a href="tel:'+b.phone+'" style="color:var(--plum);font-weight:700">'+b.phone+'</a></td>'+
+      '<td><span style="color:'+col+';font-weight:700;font-size:12.5px">'+sc+'</span></td>'+
+      '<td style="font-size:12px;color:var(--soft)">'+fmtD(b.created_at)+'</td>'+
+      '<td>'+
+        (b.status!=='active'?'<button class="abtn abtn-l" onclick="setBrokerStatus(\''+b.id+'\',\'active\')" style="font-size:11.5px;padding:5px 10px">تفعيل</button> ':'')+
+        (b.status==='active'?'<button class="abtn abtn-r" onclick="setBrokerStatus(\''+b.id+'\',\'suspended\')" style="font-size:11.5px;padding:5px 10px">إيقاف</button> ':'')+
+        (b.status==='suspended'?'<button class="abtn abtn-l" onclick="setBrokerStatus(\''+b.id+'\',\'active\')" style="font-size:11.5px;padding:5px 10px">إعادة تفعيل</button> ':'')+
+        '<button class="abtn" onclick="deleteBroker(\''+b.id+'\',\''+b.name+'\')" style="font-size:11.5px;padding:5px 10px;background:var(--cs);color:var(--coral);border:none">حذف</button>'+
+      '</td>'+
+    '</tr>';
+  }).join('');
+}
+window.renderBrokers=renderBrokers;
+
+function filterBrokers(){
+  var q=$('bkSearch').value.toLowerCase();
+  renderBrokers(allBrokers.filter(function(b){return !q||b.name.toLowerCase().indexOf(q)>-1||b.email.toLowerCase().indexOf(q)>-1||b.company.toLowerCase().indexOf(q)>-1;}));
+}
+window.filterBrokers=filterBrokers;
+
+function setBrokerStatus(id,status){
+  var confirmMsg={'active':'تفعيل حساب الوسيط؟','suspended':'إيقاف حساب الوسيط؟'}[status]||'تغيير الحالة؟';
+  if(!confirm(confirmMsg))return;
+  var payload={id:id,status:status};
+  if(status==='active')payload.activated_at=new Date().toISOString();
+  fetch(SB+'/rest/v1/brokers?id=eq.'+id,{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(payload)})
+    .then(function(r){if(r.ok){toast(status==='active'?'✅ تم تفعيل الحساب!':'🚫 تم إيقاف الحساب');loadBrokers();}else toast('خطأ في التحديث',true);});
+}
+window.setBrokerStatus=setBrokerStatus;
+
+function deleteBroker(id,name){
+  if(!confirm('حذف وسيط "'+name+'"؟ هيتحذف مع كل تقاريره. مش هيرجع!'))return;
+  fetch(SB+'/rest/v1/brokers?id=eq.'+id,{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK}})
+    .then(function(r){if(r.ok){toast('تم الحذف ✓');loadBrokers();}else toast('خطأ في الحذف',true);});
+}
+window.deleteBroker=deleteBroker;
 
 function clearForm(){
   ['did','dn','dph','dest','ddel','dsal','dcomp','danal','dlogoData'].forEach(function(id){$(id).value='';});
